@@ -16,7 +16,7 @@ func TackDB() {
 		log.Fatal(err)
 	}
 
-	dbFile := filepath.Join(appPath, "TODO_DBFILE")
+	dbFile := filepath.Join(appPath, os.Getenv("TODO_DBFILE"))
 	_, err = os.Stat(dbFile)
 
 	var install bool
@@ -25,12 +25,12 @@ func TackDB() {
 	}
 
 	if install {
-		_, err = os.Create("TODO_DBFILE")
+		_, err = os.Create(os.Getenv("TODO_DBFILE"))
 		if err != nil {
 			fmt.Println(err)
 		}
 
-		db, err := sql.Open("sqlite3", "TODO_DBFILE")
+		db, err := sql.Open("sqlite3", os.Getenv("TODO_DBFILE"))
 		if err != nil {
 			fmt.Println(err)
 			return
