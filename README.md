@@ -21,32 +21,33 @@ API содержит следующие операции:
 # Инструкция по запуску кода (локально)
 
 Чтобы локально запустить приложение на компьютере необходимо в консоли установить следующие переменные окружения:
-export TODO_PORT=:7540
-export TODO_DBFILE=dbS/scheduler.db
-export TODO_PASSWORD=12345
+`export TODO_PORT=:7540`
+`export TODO_DBFILE=dbS/scheduler.db`
+`export TODO_PASSWORD=12345`
 
-После установки значений переменных окружения запускаем файл main.go в папке go_final_project, указывая переменные окружения:
-go run main.go '$TODO_PORT, $TODO_DBFILE, $TODO_PASSWORD'
+После установки значений переменных окружения запускаем файл `main.go` в папке `go_final_project`, указывая переменные окружения:
+`go run main.go '$TODO_PORT, $TODO_DBFILE, $TODO_PASSWORD'`
 
 Приложение запускается в браузере по адресу (адрес меняется в зависимости от переменной окружения TODO_PORT):
-http://localhost:7540/
+`http://localhost:7540/`
 
 # Тестирование
 
-Для тестирования нужно установить следующие параметры в файле tests/settings.go:
-var Port = 7540
-var DBFile = "../dbS/scheduler.db"
-var FullNextDate = true
-var Search = true
-var Token = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.396KCDWMomWrMEImsF84AmFRjBEvSvnyLh3ZA_mB_Wg`
+Для тестирования нужно установить следующие параметры в файле `tests/settings.go`:
+
+`var Port = 7540`
+`var DBFile = "../dbS/scheduler.db"`
+`var FullNextDate = true`
+`var Search = true`
+`var Token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.396KCDWMomWrMEImsF84AmFRjBEvSvnyLh3ZA_mB_Wg`
 
 # Запуск контейнеров
 
 Запустите приложение можно выполнив команду в терминале:
-docker compose up
+`docker compose up`
 
 И далее запустите приложение по адресу:
-http://localhost:7540/
+`http://localhost:7540/`
 
 
 
