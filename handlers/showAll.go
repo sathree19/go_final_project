@@ -6,10 +6,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 )
 
-func GetTasks(w http.ResponseWriter, r *http.Request) {
+func (s ParcelStore) GetTasks(w http.ResponseWriter, r *http.Request) {
 	tasks := make(map[string][]Task)
 
 	var out Output
@@ -20,16 +19,9 @@ func GetTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, err := sql.Open("sqlite3", os.Getenv("TODO_DBFILE"))
-	if err != nil {
-		out.Error = err.Error()
-		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
-		return
-	}
-	defer db.Close()
 	limit := 20
 
-	rows, err := db.Query("SELECT id, date, title, comment, repeat FROM scheduler ORDER BY date LIMIT :limit", sql.Named("limit", limit))
+	rows, err := s.db.Query("SELECT id, date, title, comment, repeat FROM scheduler ORDER BY date LIMIT :limit", sql.Named("limit", limit))
 	if err != nil {
 		out.Error = err.Error()
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
@@ -37,7 +29,6 @@ func GetTasks(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 	var task Task
-	//var id Output
 	var task1 []Task
 
 	for rows.Next() {

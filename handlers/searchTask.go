@@ -6,26 +6,18 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"time"
 )
 
-func GetSearch(w http.ResponseWriter, r *http.Request) {
+func (s ParcelStore) GetSearch(w http.ResponseWriter, r *http.Request) {
 	tasks := make(map[string][]Task)
 	var rows *sql.Rows
 	var out Output
 	var id Output
 
-	params := r.URL.Query() //chi.URLParam(r, "param")
+	params := r.URL.Query()
 	param := params.Get("search")
 
-	db, err := sql.Open("sqlite3", os.Getenv("TODO_DBFILE"))
-	if err != nil {
-		out.Error = err.Error()
-		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
-		return
-	}
-	defer db.Close()
 	limit := 10
 
 	param1, err := time.Parse("02.01.2006", param)
@@ -33,7 +25,7 @@ func GetSearch(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 
-		rows, err = db.Query("SELECT id, date, title, comment, repeat FROM scheduler WHERE title LIKE '%' || :search || '%' OR comment LIKE '%' || :search || '%' ORDER BY date LIMIT :limit ", sql.Named("search", param), sql.Named("search", param), sql.Named("limit", limit))
+		rows, err = s.db.Query("SELECT id, date, title, comment, repeat FROM scheduler WHERE title LIKE '%' || :search || '%' OR comment LIKE '%' || :search || '%' ORDER BY date LIMIT :limit ", sql.Named("search", param), sql.Named("search", param), sql.Named("limit", limit))
 		if err != nil {
 			out.Error = err.Error()
 			http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
@@ -41,7 +33,7 @@ func GetSearch(w http.ResponseWriter, r *http.Request) {
 		}
 		defer rows.Close()
 	} else {
-		rows, err = db.Query("SELECT id, date, title, comment, repeat FROM scheduler WHERE date = :date ORDER BY date LIMIT :limit ", sql.Named("date", t), sql.Named("limit", limit))
+		rows, err = s.db.Query("SELECT id, date, title, comment, repeat FROM scheduler WHERE date = :date ORDER BY date LIMIT :limit ", sql.Named("date", t), sql.Named("limit", limit))
 		if err != nil {
 			out.Error = err.Error()
 			http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)

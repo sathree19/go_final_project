@@ -1,50 +1,69 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
-	"go_final_project/addNew"
-	"go_final_project/dbS"
+	addNew "go_final_project/handlers"
 	"go_final_project/middleware"
 	"go_final_project/repeatTask"
+	"go_final_project/storage"
+	"log"
 	"os"
 	"strings"
 
 	"net/http"
 )
 
-func handlerTasks(w http.ResponseWriter, r *http.Request) {
-	//fmt.Println(r.URL.JoinPath())
+type ParcelService struct {
+	store addNew.ParcelStore
+}
 
+func NewParcelService(store addNew.ParcelStore) ParcelService {
+	return ParcelService{store: store}
+}
+
+func (s ParcelService) handlerTasks(w http.ResponseWriter, r *http.Request) {
 	url := r.URL
 
 	query := url.RawQuery
 	param := strings.Split(query, `=`)
 
 	if param[0] == "search" {
-		addNew.GetSearch(w, r)
+		s.store.GetSearch(w, r)
 		return
 	}
-	addNew.GetTasks(w, r)
+	s.store.GetTasks(w, r)
 
 }
 
-func handlerTask(w http.ResponseWriter, r *http.Request) {
-	//fmt.Println(r.URL.JoinPath())
-
+func (s ParcelService) handlerTask(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPut {
-		addNew.PutTask(w, r)
+		s.store.PutTask(w, r)
 	} else if r.Method == http.MethodGet {
-		addNew.GetId(w, r)
+		s.store.GetId(w, r)
 	} else if r.Method == http.MethodDelete {
-		addNew.DeleteTask(w, r)
+		s.store.DeleteTask(w, r)
 	} else {
-		addNew.PostTask(w, r)
+		s.store.PostTask(w, r)
 	}
+}
+
+func (s ParcelService) handlerTaskDone(w http.ResponseWriter, r *http.Request) {
+	s.store.DoneTask(w, r)
 }
 
 func main() {
 
-	dbS.TackDB()
+	storage.TackDB()
+	db, err := sql.Open("sqlite3", os.Getenv("TODO_DBFILE"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	store := addNew.NewParcelStore(db)
+	service := NewParcelService(store)
+
 	walkDir := "./web"
 	http.Handle("/", http.FileServer(http.Dir(walkDir)))
 	http.HandleFunc("/api/nextdate", repeatTask.MainHandle)
@@ -52,22 +71,22 @@ func main() {
 
 	if os.Getenv("TODO_PASSWORD") != "" {
 
-		http.HandleFunc("/api/task", middleware.Auth2(handlerTask))
-		http.HandleFunc("/api/tasks", middleware.Auth2(handlerTasks))
-		http.HandleFunc("/api/task/done", middleware.Auth2(addNew.DoneTask))
+		http.HandleFunc("/api/task", middleware.Auth(service.handlerTask))
+		http.HandleFunc("/api/tasks", middleware.Auth(service.handlerTasks))
+		http.HandleFunc("/api/task/done", middleware.Auth(service.handlerTaskDone))
 
 	} else {
 
-		http.HandleFunc("/api/tasks", handlerTasks)
-		http.HandleFunc("/api/task", handlerTask)
-		http.HandleFunc("/api/task/done", addNew.DoneTask)
+		http.HandleFunc("/api/tasks", service.handlerTasks)
+		http.HandleFunc("/api/task", service.handlerTask)
+		http.HandleFunc("/api/task/done", service.handlerTaskDone)
 
 	}
 
-	toDoPort := os.Getenv("TODO_PORT")
-	fmt.Println("Server is listening...")
+	toDoPort := strings.Join([]string{":", os.Getenv("TODO_PORT")}, "")
+	fmt.Println("Server", toDoPort, "is listening...")
 
-	err := http.ListenAndServe(toDoPort, nil)
+	err = http.ListenAndServe(toDoPort, nil)
 
 	if err != nil {
 		panic(err)

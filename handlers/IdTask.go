@@ -5,11 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"strconv"
 )
 
-func GetId(w http.ResponseWriter, r *http.Request) {
+func (s ParcelStore) GetId(w http.ResponseWriter, r *http.Request) {
 	var task Task
 	var out Output
 
@@ -30,15 +29,7 @@ func GetId(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, err := sql.Open("sqlite3", os.Getenv("TODO_DBFILE"))
-	if err != nil {
-		out.Error = err.Error()
-		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
-		return
-	}
-	defer db.Close()
-
-	row := db.QueryRow("SELECT id, date, title, comment, repeat FROM scheduler WHERE id = :id", sql.Named("id", param1))
+	row := s.db.QueryRow("SELECT id, date, title, comment, repeat FROM scheduler WHERE id = :id", sql.Named("id", param1))
 
 	err = row.Scan(&task.Id, &task.Date, &task.Title, &task.Comment, &task.Repeat)
 	if err != nil {

@@ -1,54 +1,60 @@
 package addNew
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"go_final_project/repeatTask"
+	"log"
 	"net/http"
-	"os"
 	"time"
+
+	"go_final_project/repeatTask"
 )
 
-type Task struct {
-	Id      int64  `json:"id,string,omitempty"`
-	Date    string `json:"date,omitempty"`
-	Title   string `json:"title,omitempty"`
-	Comment string `json:"comment,omitempty"`
-	Repeat  string `json:"repeat,omitempty"`
-}
-
-type Output struct {
-	ID    int64  `json:"id,string,omitempty"`
-	Error string `json:"error"`
-}
-
-func PostTask(w http.ResponseWriter, r *http.Request) {
-
-	if r.Method != http.MethodPost {
-		w.WriteHeader(405)
-		w.Write([]byte("GET-Метод запрещен!"))
-		return
-	}
+func (s ParcelStore) PutTask(w http.ResponseWriter, r *http.Request) {
 
 	var task Task
 	var out Output
+	var buf bytes.Buffer
 
-	err := json.NewDecoder(r.Body).Decode(&task)
+	_, err := buf.ReadFrom(r.Body)
 	if err != nil {
-		out.Error = err.Error()
-		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	db, err := sql.Open("sqlite3", os.Getenv("TODO_DBFILE"))
-	if err != nil {
-		out.Error = err.Error()
+	if err := json.Unmarshal(buf.Bytes(), &task); err != nil {
+		out.Error = "Задача не найдена"
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 		return
 	}
-	defer db.Close()
+	var ids []int
+	var ID int
 
+	rows, err := s.db.Query("SELECT id FROM scheduler")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+
+		err := rows.Scan(&ID)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		ids = append(ids, ID)
+	}
+
+	if !repeatTask.Contains(ids, int(task.Id)) {
+		out.Error = "Задача не найдена"
+		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
+		return
+	}
 	if task.Date == "" || task.Date == "today" {
 		task.Date = time.Now().Format("20060102")
 	}
@@ -66,13 +72,10 @@ func PostTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if taskDate.Sub(time.Now()) < 0 {
+	if taskDate.Sub(time.Now()) <= 0 {
 		switch {
 		case task.Repeat == "":
 			task.Date = time.Now().Format("20060102")
-		case time.Now().Format("20060102") == task.Date:
-			task.Date = time.Now().Format("20060102")
-
 		default:
 			task.Date, err = repeatTask.NextDate(time.Now(), task.Date, task.Repeat)
 			if err != nil {
@@ -85,26 +88,27 @@ func PostTask(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	res, err := db.Exec("INSERT INTO scheduler (date, title, comment, repeat) VALUES (:date, :title, :comment, :repeat)",
+	_, err = s.db.Exec("UPDATE scheduler SET date = :date, title = :title, comment = :comment, repeat = :repeat WHERE id = :id",
 		sql.Named("date", task.Date),
 		sql.Named("title", task.Title),
 		sql.Named("comment", task.Comment),
-		sql.Named("repeat", task.Repeat))
+		sql.Named("repeat", task.Repeat),
+		sql.Named("id", task.Id))
+	if err != nil {
+		out.Error = "Задача не найдена"
+		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
+		return
+	}
+	task = Task{Id: task.Id, Date: task.Date, Title: task.Title, Comment: task.Comment, Repeat: task.Repeat}
+
+	resp, err := json.Marshal(task)
 	if err != nil {
 		out.Error = err.Error()
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 		return
 	}
 
-	out.ID, err = res.LastInsertId()
-
-	if err != nil {
-		out.Error = err.Error()
-		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
-		return
-	}
-
-	fmt.Fprintf(w, `{"id": "%d"}`, out.ID)
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(resp)
 }
