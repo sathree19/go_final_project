@@ -140,15 +140,26 @@ func NextDayOfMounth(needDayOfMounth []int, numberOfMounth []int, t time.Time) (
 
 	if temp == 1 {
 		needDayOfMounth = append(needDayOfMounth, int(time.Date(t.Year(), nextMounth+1, -1, 0, 0, 0, 0, time.Local).Day()))
+		if len(needDayOfMounth) == 2 {
+			return time.Date(year, nextMounth, needDayOfMounth[1], 0, 0, 0, 0, time.Local), nil
+		}
 	}
 
 	if temp == 2 {
 		needDayOfMounth = append(needDayOfMounth, int(time.Date(t.Year(), nextMounth+1, 0, 0, 0, 0, 0, time.Local).Day()))
+		if len(needDayOfMounth) == 2 {
+			return time.Date(year, nextMounth, needDayOfMounth[1], 0, 0, 0, 0, time.Local), nil
+		}
 	}
 
 	if temp == 3 {
 		needDayOfMounth = append(needDayOfMounth, int(time.Date(t.Year(), nextMounth+1, -1, 0, 0, 0, 0, time.Local).Day()))
 		needDayOfMounth = append(needDayOfMounth, int(time.Date(t.Year(), nextMounth+1, 0, 0, 0, 0, 0, time.Local).Day()))
+		if len(needDayOfMounth) == 4 {
+			needDayOfMounth1 := []int{int(time.Date(t.Year(), nextMounth+1, -1, 0, 0, 0, 0, time.Local).Day()), int(time.Date(t.Year(), nextMounth+1, 0, 0, 0, 0, 0, time.Local).Day())}
+			tNew := time.Date(year, nextMounth, needDayOfMounth1[0], 0, 0, 0, 0, time.Local)
+			return tNew, nil
+		}
 	}
 
 	// Сортируем с последним и предпоследним днем

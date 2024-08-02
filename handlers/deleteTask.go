@@ -1,47 +1,47 @@
-package addNew
+package handlers
 
 import (
-	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"go_final_project/str"
 	"net/http"
 	"strconv"
 )
 
-func (s ParcelStore) DeleteTask(w http.ResponseWriter, r *http.Request) {
-	var task Task
-	var out Output
+func (h *Handler) DeleteTask(w http.ResponseWriter, r *http.Request) {
+	var task str.Task
+	var out str.Output
 
 	params := r.URL.Query()
 
 	param := params.Get("id")
 
 	param1, err := strconv.Atoi(param)
+
 	if err != nil {
-		out.Error = "неверный id"
+		out.Error = errors.New("неверный id")
+		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
+		return
+	}
+	_, err = h.Store.SelectId(param1)
+	if err != nil {
+		out.Error = err
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 		return
 	}
 
-	row := s.db.QueryRow("SELECT id, date, title, comment, repeat FROM scheduler WHERE id = :id", sql.Named("id", param1))
-
-	err = row.Scan(&task.Id, &task.Date, &task.Title, &task.Comment, &task.Repeat)
-	if err != nil {
-		out.Error = err.Error()
+	out.Error = h.Store.Delete(param1)
+	if out.Error != nil {
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 		return
 	}
 
-	_, err = s.db.Exec("DELETE FROM scheduler WHERE id = :id", sql.Named("id", param1))
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	task = Task{}
+	task, _ = h.Store.SelectId(param1)
 	resp, err := json.Marshal(task)
+
 	if err != nil {
-		out.Error = err.Error()
+		out.Error = err
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 		return
 	}

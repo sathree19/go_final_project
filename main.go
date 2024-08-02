@@ -3,7 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	addNew "go_final_project/handlers"
+	"go_final_project/handlers"
 	"go_final_project/middleware"
 	"go_final_project/repeatTask"
 	"go_final_project/storage"
@@ -11,58 +11,53 @@ import (
 	"os"
 	"strings"
 
+	_ "github.com/mattn/go-sqlite3"
+
 	"net/http"
 )
 
-type ParcelService struct {
-	store addNew.ParcelStore
-}
-
-func NewParcelService(store addNew.ParcelStore) ParcelService {
-	return ParcelService{store: store}
-}
-
-func (s ParcelService) handlerTasks(w http.ResponseWriter, r *http.Request) {
-	url := r.URL
-
-	query := url.RawQuery
-	param := strings.Split(query, `=`)
-
-	if param[0] == "search" {
-		s.store.GetSearch(w, r)
-		return
-	}
-	s.store.GetTasks(w, r)
-
-}
-
-func (s ParcelService) handlerTask(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPut {
-		s.store.PutTask(w, r)
-	} else if r.Method == http.MethodGet {
-		s.store.GetId(w, r)
-	} else if r.Method == http.MethodDelete {
-		s.store.DeleteTask(w, r)
-	} else {
-		s.store.PostTask(w, r)
-	}
-}
-
-func (s ParcelService) handlerTaskDone(w http.ResponseWriter, r *http.Request) {
-	s.store.DoneTask(w, r)
-}
-
 func main() {
 
-	storage.TackDB()
+	storage.TaskDB()
+
 	db, err := sql.Open("sqlite3", os.Getenv("TODO_DBFILE"))
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 
-	store := addNew.NewParcelStore(db)
-	service := NewParcelService(store)
+	store := storage.NewParcelStore(db)
+	service := handlers.NewHandler(store)
+
+	handlerTasks := func(w http.ResponseWriter, r *http.Request) {
+		url := r.URL
+
+		query := url.RawQuery
+		param := strings.Split(query, `=`)
+
+		if param[0] == "search" {
+			service.GetSearch(w, r)
+			return
+		}
+		service.GetTasks(w, r)
+
+	}
+
+	handlerTask := func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPut {
+			service.PutTask(w, r)
+		} else if r.Method == http.MethodGet {
+			service.GetId(w, r)
+		} else if r.Method == http.MethodDelete {
+			service.DeleteTask(w, r)
+		} else {
+			service.PostTask(w, r)
+		}
+	}
+
+	handlerTaskDone := func(w http.ResponseWriter, r *http.Request) {
+		service.DoneTask(w, r)
+	}
 
 	walkDir := "./web"
 	http.Handle("/", http.FileServer(http.Dir(walkDir)))
@@ -71,15 +66,15 @@ func main() {
 
 	if os.Getenv("TODO_PASSWORD") != "" {
 
-		http.HandleFunc("/api/task", middleware.Auth(service.handlerTask))
-		http.HandleFunc("/api/tasks", middleware.Auth(service.handlerTasks))
-		http.HandleFunc("/api/task/done", middleware.Auth(service.handlerTaskDone))
+		http.HandleFunc("/api/task", middleware.Auth(handlerTask))
+		http.HandleFunc("/api/tasks", middleware.Auth(handlerTasks))
+		http.HandleFunc("/api/task/done", middleware.Auth(handlerTaskDone))
 
 	} else {
 
-		http.HandleFunc("/api/tasks", service.handlerTasks)
-		http.HandleFunc("/api/task", service.handlerTask)
-		http.HandleFunc("/api/task/done", service.handlerTaskDone)
+		http.HandleFunc("/api/tasks", handlerTasks)
+		http.HandleFunc("/api/task", handlerTask)
+		http.HandleFunc("/api/task/done", handlerTaskDone)
 
 	}
 

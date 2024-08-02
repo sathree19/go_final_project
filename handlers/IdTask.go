@@ -1,48 +1,45 @@
-package addNew
+package handlers
 
 import (
-	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"go_final_project/str"
 	"net/http"
 	"strconv"
 )
 
-func (s ParcelStore) GetId(w http.ResponseWriter, r *http.Request) {
-	var task Task
-	var out Output
+func (h *Handler) GetId(w http.ResponseWriter, r *http.Request) {
+	var task str.Task
+	var out str.Output
 
 	params := r.URL.Query()
 
 	param := params.Get("id")
 
 	if param == "" {
-		out.Error = "Задача не найдена"
+		out.Error = errors.New("Задача не найдена")
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 		return
 	}
 
 	param1, err := strconv.Atoi(param)
 	if err != nil {
-		out.Error = "Задача не найдена"
+		out.Error = errors.New("Задача не найдена")
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 		return
 	}
 
-	row := s.db.QueryRow("SELECT id, date, title, comment, repeat FROM scheduler WHERE id = :id", sql.Named("id", param1))
-
-	err = row.Scan(&task.Id, &task.Date, &task.Title, &task.Comment, &task.Repeat)
+	task, err = h.Store.SelectId(param1)
 	if err != nil {
-		out.Error = "Задача не найдена"
+		out.Error = err
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 		return
 	}
-
-	task = Task{Id: task.Id, Date: task.Date, Title: task.Title, Comment: task.Comment, Repeat: task.Repeat}
 
 	resp, err := json.Marshal(task)
 	if err != nil {
-		out.Error = err.Error()
+		out.Error = err
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 		return
 	}

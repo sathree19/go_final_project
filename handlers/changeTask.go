@@ -1,21 +1,21 @@
-package addNew
+package handlers
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
 	"go_final_project/repeatTask"
+	"go_final_project/str"
 )
 
-func (s ParcelStore) PutTask(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) PutTask(w http.ResponseWriter, r *http.Request) {
 
-	var task Task
-	var out Output
+	var task str.Task
+	var out str.Output
 	var buf bytes.Buffer
 
 	_, err := buf.ReadFrom(r.Body)
@@ -25,33 +25,19 @@ func (s ParcelStore) PutTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.Unmarshal(buf.Bytes(), &task); err != nil {
-		out.Error = "Задача не найдена"
+		out.Error = errors.New("Задача не найдена")
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 		return
 	}
 	var ids []int
-	var ID int
 
-	rows, err := s.db.Query("SELECT id FROM scheduler")
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-
-		err := rows.Scan(&ID)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		ids = append(ids, ID)
+	ids, _, out.Error = h.Store.SelectAll("ALL")
+	if out.Error != nil {
+		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 	}
 
 	if !repeatTask.Contains(ids, int(task.Id)) {
-		out.Error = "Задача не найдена"
+		out.Error = errors.New("Задача не найдена")
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 		return
 	}
@@ -61,13 +47,13 @@ func (s ParcelStore) PutTask(w http.ResponseWriter, r *http.Request) {
 
 	taskDate, err := time.Parse("20060102", task.Date)
 	if err != nil {
-		out.Error = "Неверный формат даты"
+		out.Error = errors.New("Неверный формат даты")
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 		return
 	}
 
 	if task.Title == "" {
-		out.Error = "Поле 'Заголовок' обязательное"
+		out.Error = errors.New("Поле 'Заголовок' обязательное")
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 		return
 	}
@@ -79,7 +65,7 @@ func (s ParcelStore) PutTask(w http.ResponseWriter, r *http.Request) {
 		default:
 			task.Date, err = repeatTask.NextDate(time.Now(), task.Date, task.Repeat)
 			if err != nil {
-				out.Error = err.Error()
+				out.Error = err
 				http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 				return
 			}
@@ -88,22 +74,11 @@ func (s ParcelStore) PutTask(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	_, err = s.db.Exec("UPDATE scheduler SET date = :date, title = :title, comment = :comment, repeat = :repeat WHERE id = :id",
-		sql.Named("date", task.Date),
-		sql.Named("title", task.Title),
-		sql.Named("comment", task.Comment),
-		sql.Named("repeat", task.Repeat),
-		sql.Named("id", task.Id))
-	if err != nil {
-		out.Error = "Задача не найдена"
-		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
-		return
-	}
-	task = Task{Id: task.Id, Date: task.Date, Title: task.Title, Comment: task.Comment, Repeat: task.Repeat}
+	task, out = h.Store.Update(task, out)
 
 	resp, err := json.Marshal(task)
 	if err != nil {
-		out.Error = err.Error()
+		out.Error = err
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 		return
 	}

@@ -3,7 +3,7 @@ FROM golang:1.21.0
 
 ENV TODO_PORT=7540
 
-ENV TODO_DBFILE=dbS/scheduler.db
+ENV TODO_DBFILE=storage/scheduler.db
 
 ENV TODO_PASSWORD=12345
 

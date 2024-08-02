@@ -10,7 +10,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func TackDB() {
+func TaskDB() {
 	appPath, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)
