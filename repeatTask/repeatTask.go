@@ -204,6 +204,12 @@ func NextMounth(needMounth []int, t time.Time) (time.Month, int) {
 
 	// }
 
+	tNew := time.Date(t.Year(), time.Month(Next(needMounth, int(t.Month()))), t.Day(), 0, 0, 0, 0, time.Local)
+
+	if (tNew.Day() == 1 || tNew.Day() == 2 || tNew.Day() == 3) && (t.Day() == 29 || t.Day() == 30 || t.Day() == 31) {
+		return time.Month(Next(needMounth, Next(needMounth, int(t.Month())))), t.Year()
+	}
+
 	return time.Month(Next(needMounth, int(t.Month()))), t.Year()
 
 }
