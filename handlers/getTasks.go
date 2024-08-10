@@ -3,23 +3,24 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+
+	"go_final_project/model"
 )
 
+// Вывод задач
 func (h *Handler) GetTasks(w http.ResponseWriter, r *http.Request) {
 
-	if r.Method != http.MethodGet {
-		w.WriteHeader(405)
-		w.Write([]byte("Другой метод"))
-		return
-	}
-
-	limit := "20"
-	_, tasks, err := h.Store.SelectAll(limit)
+	_, task1, err := h.Store.SelectAll(model.Limit)
 	if err != nil {
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, err), http.StatusBadRequest)
 		return
 	}
+
+	tasks := make(map[string][]model.Task)
+
+	tasks["tasks"] = task1
 
 	resp, err := json.Marshal(tasks)
 	if err != nil {
@@ -29,6 +30,7 @@ func (h *Handler) GetTasks(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(resp)
+	_, err = w.Write(resp)
+	log.Println(err)
 
 }

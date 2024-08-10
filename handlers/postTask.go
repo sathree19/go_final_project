@@ -4,31 +4,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"go_final_project/repeatTask"
-	"go_final_project/storage"
-	"go_final_project/str"
 	"net/http"
 	"time"
+
+	"go_final_project/model"
+	"go_final_project/repeatTask"
 )
 
-type Handler struct {
-	Store storage.ParcelStore
-}
-
-func NewHandler(store storage.ParcelStore) Handler {
-	return Handler{Store: store}
-}
-
+// Добавляет новую задачу
 func (h *Handler) PostTask(w http.ResponseWriter, r *http.Request) {
 
-	if r.Method != http.MethodPost {
-		w.WriteHeader(405)
-		w.Write([]byte("GET-Метод запрещен!"))
-		return
-	}
-
-	var task str.Task
-	var out str.Output
+	var task model.Task
+	var out model.Output
 
 	err := json.NewDecoder(r.Body).Decode(&task)
 	if err != nil {
@@ -43,13 +30,13 @@ func (h *Handler) PostTask(w http.ResponseWriter, r *http.Request) {
 
 	taskDate, err := time.Parse("20060102", task.Date)
 	if err != nil {
-		out.Error = errors.New("Неверный формат даты")
+		out.Error = errors.New("неверный формат даты")
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 		return
 	}
 
 	if task.Title == "" {
-		out.Error = errors.New("Поле 'Заголовок' обязательное")
+		out.Error = errors.New("поле 'Заголовок' обязательное")
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 		return
 	}

@@ -4,20 +4,23 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"go_final_project/str"
+	"log"
 	"net/http"
 	"strconv"
+
+	"go_final_project/model"
 )
 
+// Удаление задачи
 func (h *Handler) DeleteTask(w http.ResponseWriter, r *http.Request) {
-	var task str.Task
-	var out str.Output
+	var task model.Task
+	var out model.Output
 
 	params := r.URL.Query()
 
-	param := params.Get("id")
+	id := params.Get("id")
 
-	param1, err := strconv.Atoi(param)
+	param1, err := strconv.Atoi(id)
 
 	if err != nil {
 		out.Error = errors.New("неверный id")
@@ -48,6 +51,7 @@ func (h *Handler) DeleteTask(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(resp)
+	_, err = w.Write(resp)
+	log.Println(err)
 
 }

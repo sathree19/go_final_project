@@ -3,24 +3,38 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"go_final_project/handlers"
-	"go_final_project/middleware"
-	"go_final_project/repeatTask"
-	"go_final_project/storage"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
 
-	"net/http"
+	"go_final_project/handlers"
+	"go_final_project/middleware"
+	"go_final_project/repeatTask"
+	"go_final_project/storage"
 )
 
 func main() {
 
-	storage.TaskDB()
+	pass := "12345"
+	envPass := os.Getenv("TODO_PASSWORD")
+	if len(envPass) > 0 {
 
-	db, err := sql.Open("sqlite3", os.Getenv("TODO_DBFILE"))
+		pass = envPass
+	}
+
+	addr := "storage/scheduler.db"
+	envAddr := os.Getenv("TODO_DBFILE")
+	if len(envAddr) > 0 {
+
+		addr = envAddr
+	}
+
+	storage.TaskDB(addr)
+
+	db, err := sql.Open("sqlite3", addr)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -66,9 +80,9 @@ func main() {
 
 	if os.Getenv("TODO_PASSWORD") != "" {
 
-		http.HandleFunc("/api/task", middleware.Auth(handlerTask))
-		http.HandleFunc("/api/tasks", middleware.Auth(handlerTasks))
-		http.HandleFunc("/api/task/done", middleware.Auth(handlerTaskDone))
+		http.HandleFunc("/api/task", middleware.Auth(handlerTask, pass))
+		http.HandleFunc("/api/tasks", middleware.Auth(handlerTasks, pass))
+		http.HandleFunc("/api/task/done", middleware.Auth(handlerTaskDone, pass))
 
 	} else {
 
@@ -78,7 +92,14 @@ func main() {
 
 	}
 
-	toDoPort := strings.Join([]string{":", os.Getenv("TODO_PORT")}, "")
+	port := "7540"
+	envPort := os.Getenv("TODO_PORT")
+	if len(envPort) > 0 {
+
+		port = envPort
+	}
+
+	toDoPort := strings.Join([]string{":", port}, "")
 	fmt.Println("Server", toDoPort, "is listening...")
 
 	err = http.ListenAndServe(toDoPort, nil)

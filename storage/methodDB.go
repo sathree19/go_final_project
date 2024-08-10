@@ -3,11 +3,12 @@ package storage
 import (
 	"database/sql"
 	"errors"
-	"go_final_project/str"
 	"strconv"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
+
+	"go_final_project/model"
 )
 
 type ParcelStore struct {
@@ -18,7 +19,7 @@ func NewParcelStore(db *sql.DB) ParcelStore {
 	return ParcelStore{db: db}
 }
 
-func (s ParcelStore) Add(task str.Task, out str.Output) str.Output {
+func (s ParcelStore) Add(task model.Task, out model.Output) model.Output {
 	res, err := s.db.Exec("INSERT INTO scheduler (date, title, comment, repeat) VALUES (:date, :title, :comment, :repeat)",
 		sql.Named("date", task.Date),
 		sql.Named("title", task.Title),
@@ -41,25 +42,23 @@ func (s ParcelStore) Add(task str.Task, out str.Output) str.Output {
 
 }
 
-func (s ParcelStore) SelectAll(limit string) ([]int, map[string][]str.Task, error) {
+func (s ParcelStore) SelectAll(limit string) ([]int, []model.Task, error) {
 
 	var ids []int
-	//var rows *sql.Rows
-	var task str.Task
-	var task1 []str.Task
-	tasks := make(map[string][]str.Task)
+	var task model.Task
+	var task1 []model.Task
 
 	if limit == "ALL" {
 		rows, err := s.db.Query("SELECT id, date, title, comment, repeat FROM scheduler")
 		if err != nil {
-			return []int{}, map[string][]str.Task{}, err
+			return []int{}, []model.Task{}, err
 		}
 		defer rows.Close()
 		for rows.Next() {
 
 			err := rows.Scan(&task.Id, &task.Date, &task.Title, &task.Comment, &task.Repeat)
 			if err != nil {
-				return []int{}, map[string][]str.Task{}, err
+				return []int{}, []model.Task{}, err
 			}
 
 			ids = append(ids, int(task.Id))
@@ -67,29 +66,27 @@ func (s ParcelStore) SelectAll(limit string) ([]int, map[string][]str.Task, erro
 			task1 = append(task1, task)
 		}
 
-		tasks["tasks"] = task1
-
 		if err := rows.Err(); err != nil {
-			return []int{}, map[string][]str.Task{}, err
+			return []int{}, []model.Task{}, err
 		}
 
-		return ids, tasks, nil
+		return ids, task1, nil
 	} else {
 		lim, err := strconv.Atoi(limit)
 		if err != nil {
-			return []int{}, map[string][]str.Task{}, err
+			return []int{}, []model.Task{}, err
 		}
 
 		rows, err := s.db.Query("SELECT id, date, title, comment, repeat FROM scheduler ORDER BY date LIMIT :limit", sql.Named("limit", lim))
 		if err != nil {
-			return []int{}, map[string][]str.Task{}, err
+			return []int{}, []model.Task{}, err
 		}
 		defer rows.Close()
 		for rows.Next() {
 
 			err := rows.Scan(&task.Id, &task.Date, &task.Title, &task.Comment, &task.Repeat)
 			if err != nil {
-				return []int{}, map[string][]str.Task{}, err
+				return []int{}, []model.Task{}, err
 			}
 
 			ids = append(ids, int(task.Id))
@@ -97,18 +94,16 @@ func (s ParcelStore) SelectAll(limit string) ([]int, map[string][]str.Task, erro
 			task1 = append(task1, task)
 		}
 
-		tasks["tasks"] = task1
-
 		if err := rows.Err(); err != nil {
-			return []int{}, map[string][]str.Task{}, err
+			return []int{}, []model.Task{}, err
 		}
 
-		return ids, tasks, nil
+		return ids, task1, nil
 	}
 
 }
 
-func (s ParcelStore) Update(task str.Task, out str.Output) (str.Task, str.Output) {
+func (s ParcelStore) Update(task model.Task, out model.Output) (model.Task, model.Output) {
 
 	_, err := s.db.Exec("UPDATE scheduler SET date = :date, title = :title, comment = :comment, repeat = :repeat WHERE id = :id",
 		sql.Named("date", task.Date),
@@ -118,18 +113,18 @@ func (s ParcelStore) Update(task str.Task, out str.Output) (str.Task, str.Output
 		sql.Named("id", task.Id))
 	if err != nil {
 		out.Error = errors.New("Задача не найдена")
-		task = str.Task{}
+		task = model.Task{}
 		return task, out
 
 	}
-	task = str.Task{Id: task.Id, Date: task.Date, Title: task.Title, Comment: task.Comment, Repeat: task.Repeat}
+	task = model.Task{Id: task.Id, Date: task.Date, Title: task.Title, Comment: task.Comment, Repeat: task.Repeat}
 	return task, out
 
 }
 
-func (s ParcelStore) SelectId(param1 int) (str.Task, error) {
-	var task str.Task
-	var out str.Output
+func (s ParcelStore) SelectId(param1 int) (model.Task, error) {
+	var task model.Task
+	var out model.Output
 
 	row := s.db.QueryRow("SELECT id, date, title, comment, repeat FROM scheduler WHERE id = :id", sql.Named("id", param1))
 
@@ -142,68 +137,70 @@ func (s ParcelStore) Delete(param1 int) error {
 	return err
 }
 
-func (s ParcelStore) Search(param string, limit int) (error, map[string][]str.Task) {
-	tasks := make(map[string][]str.Task)
+func (s ParcelStore) Search(param string, limit string) (error, []model.Task) {
+
+	lim, err := strconv.Atoi(limit)
+	if err != nil {
+		return err, []model.Task{}
+	}
 
 	param1, err := time.Parse("02.01.2006", param)
 	t := param1.Format("20060102")
 
 	if err != nil {
 
-		rows, err := s.db.Query("SELECT id, date, title, comment, repeat FROM scheduler WHERE title LIKE '%' || :search || '%' OR comment LIKE '%' || :search || '%' ORDER BY date LIMIT :limit ", sql.Named("search", param), sql.Named("search", param), sql.Named("limit", limit))
+		rows, err := s.db.Query("SELECT id, date, title, comment, repeat FROM scheduler WHERE title LIKE '%' || :search || '%' OR comment LIKE '%' || :search || '%' ORDER BY date LIMIT :limit ", sql.Named("search", param), sql.Named("search", param), sql.Named("limit", lim))
 		if err != nil {
 
-			return err, map[string][]str.Task{}
+			return err, []model.Task{}
 		}
 		defer rows.Close()
-		var task str.Task
-		var task1 []str.Task
+		var task model.Task
+		var task1 []model.Task
 		for rows.Next() {
 
 			err := rows.Scan(&task.Id, &task.Date, &task.Title, &task.Comment, &task.Repeat)
 			if err != nil {
-				return err, map[string][]str.Task{}
+				return err, []model.Task{}
 			}
 			task1 = append(task1, task)
 
 		}
 		if task1 == nil {
-			task1 = []str.Task{}
+			task1 = []model.Task{}
 		}
-		tasks["tasks"] = task1
 
 		if err := rows.Err(); err != nil {
-			return err, map[string][]str.Task{}
+			return err, []model.Task{}
 		}
 
-		return nil, tasks
+		return nil, task1
 	} else {
-		rows, err := s.db.Query("SELECT id, date, title, comment, repeat FROM scheduler WHERE date = :date ORDER BY date LIMIT :limit ", sql.Named("date", t), sql.Named("limit", limit))
+		rows, err := s.db.Query("SELECT id, date, title, comment, repeat FROM scheduler WHERE date = :date ORDER BY date LIMIT :limit ", sql.Named("date", t), sql.Named("limit", lim))
 		if err != nil {
-			return err, map[string][]str.Task{}
+			return err, []model.Task{}
 		}
 		defer rows.Close()
-		var task str.Task
-		var task1 []str.Task
+		var task model.Task
+		var task1 []model.Task
 		for rows.Next() {
 
 			err := rows.Scan(&task.Id, &task.Date, &task.Title, &task.Comment, &task.Repeat)
 			if err != nil {
-				return err, map[string][]str.Task{}
+				return err, []model.Task{}
 			}
 			task1 = append(task1, task)
 
 		}
 		if task1 == nil {
-			task1 = []str.Task{}
+			task1 = []model.Task{}
 		}
-		tasks["tasks"] = task1
 
 		if err := rows.Err(); err != nil {
-			return err, map[string][]str.Task{}
+			return err, []model.Task{}
 		}
 
-		return nil, tasks
+		return nil, task1
 	}
 
 }

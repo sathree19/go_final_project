@@ -3,25 +3,29 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"go_final_project/str"
+	"log"
 	"net/http"
+
+	"go_final_project/model"
 )
 
+// Поиск задачи
 func (h *Handler) GetSearch(w http.ResponseWriter, r *http.Request) {
 
-	var out str.Output
-	var tasks map[string][]str.Task
+	var out model.Output
+	var task1 []model.Task
 
 	params := r.URL.Query()
 	param := params.Get("search")
 
-	limit := 10
-
-	out.Error, tasks = h.Store.Search(param, limit)
+	out.Error, task1 = h.Store.Search(param, model.Limit)
 	if out.Error != nil {
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 		return
 	}
+	tasks := make(map[string][]model.Task)
+
+	tasks["tasks"] = task1
 
 	resp, err := json.Marshal(tasks)
 	if err != nil {
@@ -32,6 +36,7 @@ func (h *Handler) GetSearch(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(resp)
+	_, err = w.Write(resp)
+	log.Println(err)
 
 }

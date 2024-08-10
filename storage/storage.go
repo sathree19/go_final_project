@@ -10,13 +10,13 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func TaskDB() {
+func TaskDB(addr string) {
 	appPath, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	dbFile := filepath.Join(appPath, os.Getenv("TODO_DBFILE"))
+	dbFile := filepath.Join(appPath, addr)
 	_, err = os.Stat(dbFile)
 
 	var install bool
@@ -25,12 +25,12 @@ func TaskDB() {
 	}
 
 	if install {
-		_, err = os.Create(os.Getenv("TODO_DBFILE"))
+		_, err = os.Create(addr)
 		if err != nil {
 			fmt.Println(err)
 		}
 
-		db, err := sql.Open("sqlite3", os.Getenv("TODO_DBFILE"))
+		db, err := sql.Open("sqlite3", addr)
 		if err != nil {
 			fmt.Println(err)
 			return

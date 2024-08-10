@@ -4,28 +4,31 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"go_final_project/str"
+	"log"
 	"net/http"
 	"strconv"
+
+	"go_final_project/model"
 )
 
+// Получение задачи
 func (h *Handler) GetId(w http.ResponseWriter, r *http.Request) {
-	var task str.Task
-	var out str.Output
+	var task model.Task
+	var out model.Output
 
 	params := r.URL.Query()
 
-	param := params.Get("id")
+	id := params.Get("id")
 
-	if param == "" {
-		out.Error = errors.New("Задача не найдена")
+	if id == "" {
+		out.Error = errors.New("ID задачи не указан")
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 		return
 	}
 
-	param1, err := strconv.Atoi(param)
+	param1, err := strconv.Atoi(id)
 	if err != nil {
-		out.Error = errors.New("Задача не найдена")
+		out.Error = err
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 		return
 	}
@@ -46,6 +49,6 @@ func (h *Handler) GetId(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(resp)
-
+	_, err = w.Write(resp)
+	log.Println(err)
 }

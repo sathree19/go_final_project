@@ -1,4 +1,4 @@
-package str
+package model
 
 type Task struct {
 	Id      int64  `json:"id,string,omitempty"`
@@ -12,3 +12,5 @@ type Output struct {
 	ID    int64 `json:"id,string,omitempty"`
 	Error error `json:"error"`
 }
+
+const Limit = "10"

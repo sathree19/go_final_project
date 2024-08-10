@@ -3,22 +3,25 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"go_final_project/repeatTask"
-	"go_final_project/str"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
+
+	"go_final_project/model"
+	"go_final_project/repeatTask"
 )
 
+// Выполнение задачи
 func (h *Handler) DoneTask(w http.ResponseWriter, r *http.Request) {
-	var task str.Task
-	var out str.Output
+	var task model.Task
+	var out model.Output
 
 	params := r.URL.Query()
 
-	param := params.Get("id")
+	id := params.Get("id")
 
-	param1, err := strconv.Atoi(param)
+	param1, err := strconv.Atoi(id)
 	if err != nil {
 		out.Error = err
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
@@ -47,6 +50,11 @@ func (h *Handler) DoneTask(w http.ResponseWriter, r *http.Request) {
 		}
 
 		task, _ = h.Store.SelectId(param1)
+		if err != nil {
+			out.Error = err
+			http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
+			return
+		}
 		resp, err := json.Marshal(task)
 
 		if err != nil {
@@ -57,7 +65,8 @@ func (h *Handler) DoneTask(w http.ResponseWriter, r *http.Request) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write(resp)
+		_, err = w.Write(resp)
+		log.Println(err)
 	} else {
 
 		task.Date, err = repeatTask.NextDate(time.Now(), task.Date, task.Repeat)

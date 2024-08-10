@@ -5,17 +5,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
+	"go_final_project/model"
 	"go_final_project/repeatTask"
-	"go_final_project/str"
 )
 
+// Редактирование задачи
 func (h *Handler) PutTask(w http.ResponseWriter, r *http.Request) {
 
-	var task str.Task
-	var out str.Output
+	var task model.Task
+	var out model.Output
 	var buf bytes.Buffer
 
 	_, err := buf.ReadFrom(r.Body)
@@ -85,5 +87,6 @@ func (h *Handler) PutTask(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(resp)
+	_, err = w.Write(resp)
+	log.Println(err)
 }

@@ -3,15 +3,14 @@ package middleware
 import (
 	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func Auth(next http.HandlerFunc) http.HandlerFunc {
+func Auth(next http.HandlerFunc, pass string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// смотрим наличие пароля
-		pass := os.Getenv("TODO_PASSWORD")
+
 		if len(pass) > 0 {
 			var j string // JWT-токен из куки
 			// получаем куку
