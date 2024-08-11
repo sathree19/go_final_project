@@ -20,27 +20,27 @@ func (h *Handler) DeleteTask(w http.ResponseWriter, r *http.Request) {
 
 	id := params.Get("id")
 
-	param1, err := strconv.Atoi(id)
+	idInt, err := strconv.Atoi(id)
 
 	if err != nil {
 		out.Error = errors.New("неверный id")
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 		return
 	}
-	_, err = h.Store.SelectId(param1)
+	_, err = h.Store.SelectId(idInt)
 	if err != nil {
 		out.Error = err
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 		return
 	}
 
-	out.Error = h.Store.Delete(param1)
+	out.Error = h.Store.Delete(idInt)
 	if out.Error != nil {
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 		return
 	}
 
-	task, _ = h.Store.SelectId(param1)
+	task, _ = h.Store.SelectId(idInt)
 	resp, err := json.Marshal(task)
 
 	if err != nil {
@@ -52,6 +52,9 @@ func (h *Handler) DeleteTask(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(resp)
-	log.Println(err)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
 }

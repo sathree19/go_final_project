@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -32,9 +31,7 @@ func main() {
 		addr = envAddr
 	}
 
-	storage.TaskDB(addr)
-
-	db, err := sql.Open("sqlite3", addr)
+	db, err := storage.InitDB(addr)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -92,14 +89,14 @@ func main() {
 
 	}
 
-	port := "7540"
+	defaultPort := "7540"
 	envPort := os.Getenv("TODO_PORT")
 	if len(envPort) > 0 {
 
-		port = envPort
+		defaultPort = envPort
 	}
 
-	toDoPort := strings.Join([]string{":", port}, "")
+	toDoPort := strings.Join([]string{":", defaultPort}, "")
 	fmt.Println("Server", toDoPort, "is listening...")
 
 	err = http.ListenAndServe(toDoPort, nil)

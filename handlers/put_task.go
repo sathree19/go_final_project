@@ -31,11 +31,16 @@ func (h *Handler) PutTask(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 		return
 	}
+	var tasks []model.Task
 	var ids []int
 
-	ids, _, out.Error = h.Store.SelectAll("ALL")
+	tasks, out.Error = h.Store.SelectAll("ALL")
 	if out.Error != nil {
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
+	}
+
+	for _, taskId := range tasks {
+		ids = append(ids, int(taskId.Id))
 	}
 
 	if !repeatTask.Contains(ids, int(task.Id)) {
@@ -88,5 +93,8 @@ func (h *Handler) PutTask(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(resp)
-	log.Println(err)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 }

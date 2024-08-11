@@ -21,14 +21,14 @@ func (h *Handler) DoneTask(w http.ResponseWriter, r *http.Request) {
 
 	id := params.Get("id")
 
-	param1, err := strconv.Atoi(id)
+	idInt, err := strconv.Atoi(id)
 	if err != nil {
 		out.Error = err
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 		return
 	}
 
-	task, out.Error = h.Store.SelectId(param1)
+	task, out.Error = h.Store.SelectId(idInt)
 	if out.Error != nil {
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 		return
@@ -36,20 +36,20 @@ func (h *Handler) DoneTask(w http.ResponseWriter, r *http.Request) {
 
 	if task.Repeat == "" {
 
-		_, err = h.Store.SelectId(param1)
+		_, err = h.Store.SelectId(idInt)
 		if err != nil {
 			out.Error = err
 			http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 			return
 		}
 
-		out.Error = h.Store.Delete(param1)
+		out.Error = h.Store.Delete(idInt)
 		if out.Error != nil {
 			http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 			return
 		}
 
-		task, _ = h.Store.SelectId(param1)
+		task, _ = h.Store.SelectId(idInt)
 		if err != nil {
 			out.Error = err
 			http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
@@ -66,7 +66,10 @@ func (h *Handler) DoneTask(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, err = w.Write(resp)
-		log.Println(err)
+		if err != nil {
+			log.Println(err)
+			return
+		}
 	} else {
 
 		task.Date, err = repeatTask.NextDate(time.Now(), task.Date, task.Repeat)

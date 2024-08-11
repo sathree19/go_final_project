@@ -12,17 +12,17 @@ import (
 // Вывод задач
 func (h *Handler) GetTasks(w http.ResponseWriter, r *http.Request) {
 
-	_, task1, err := h.Store.SelectAll(model.Limit)
+	tasks, err := h.Store.SelectAll(model.LimitShowTasks)
 	if err != nil {
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, err), http.StatusBadRequest)
 		return
 	}
 
-	tasks := make(map[string][]model.Task)
+	tasksMap := make(map[string][]model.Task)
 
-	tasks["tasks"] = task1
+	tasksMap["tasks"] = tasks
 
-	resp, err := json.Marshal(tasks)
+	resp, err := json.Marshal(tasksMap)
 	if err != nil {
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, err), http.StatusBadRequest)
 		return
@@ -31,6 +31,9 @@ func (h *Handler) GetTasks(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(resp)
-	log.Println(err)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
 }

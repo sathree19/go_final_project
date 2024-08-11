@@ -26,14 +26,14 @@ func (h *Handler) GetId(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	param1, err := strconv.Atoi(id)
+	idInt, err := strconv.Atoi(id)
 	if err != nil {
 		out.Error = err
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
 		return
 	}
 
-	task, err = h.Store.SelectId(param1)
+	task, err = h.Store.SelectId(idInt)
 	if err != nil {
 		out.Error = err
 		http.Error(w, fmt.Sprintf(`{"error": "%s"}`, out.Error), http.StatusBadRequest)
@@ -50,5 +50,8 @@ func (h *Handler) GetId(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(resp)
-	log.Println(err)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 }

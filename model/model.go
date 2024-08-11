@@ -13,4 +13,4 @@ type Output struct {
 	Error error `json:"error"`
 }
 
-const Limit = "10"
+const LimitShowTasks = "10"

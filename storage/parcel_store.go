@@ -42,63 +42,58 @@ func (s ParcelStore) Add(task model.Task, out model.Output) model.Output {
 
 }
 
-func (s ParcelStore) SelectAll(limit string) ([]int, []model.Task, error) {
+func (s ParcelStore) SelectAll(limit string) ([]model.Task, error) {
 
-	var ids []int
 	var task model.Task
-	var task1 []model.Task
+	var tasks []model.Task
 
 	if limit == "ALL" {
 		rows, err := s.db.Query("SELECT id, date, title, comment, repeat FROM scheduler")
 		if err != nil {
-			return []int{}, []model.Task{}, err
+			return []model.Task{}, err
 		}
 		defer rows.Close()
 		for rows.Next() {
 
 			err := rows.Scan(&task.Id, &task.Date, &task.Title, &task.Comment, &task.Repeat)
 			if err != nil {
-				return []int{}, []model.Task{}, err
+				return []model.Task{}, err
 			}
 
-			ids = append(ids, int(task.Id))
-
-			task1 = append(task1, task)
+			tasks = append(tasks, task)
 		}
 
 		if err := rows.Err(); err != nil {
-			return []int{}, []model.Task{}, err
+			return []model.Task{}, err
 		}
 
-		return ids, task1, nil
+		return tasks, nil
 	} else {
 		lim, err := strconv.Atoi(limit)
 		if err != nil {
-			return []int{}, []model.Task{}, err
+			return []model.Task{}, err
 		}
 
 		rows, err := s.db.Query("SELECT id, date, title, comment, repeat FROM scheduler ORDER BY date LIMIT :limit", sql.Named("limit", lim))
 		if err != nil {
-			return []int{}, []model.Task{}, err
+			return []model.Task{}, err
 		}
 		defer rows.Close()
 		for rows.Next() {
 
 			err := rows.Scan(&task.Id, &task.Date, &task.Title, &task.Comment, &task.Repeat)
 			if err != nil {
-				return []int{}, []model.Task{}, err
+				return []model.Task{}, err
 			}
 
-			ids = append(ids, int(task.Id))
-
-			task1 = append(task1, task)
+			tasks = append(tasks, task)
 		}
 
 		if err := rows.Err(); err != nil {
-			return []int{}, []model.Task{}, err
+			return []model.Task{}, err
 		}
 
-		return ids, task1, nil
+		return tasks, nil
 	}
 
 }
@@ -113,8 +108,7 @@ func (s ParcelStore) Update(task model.Task, out model.Output) (model.Task, mode
 		sql.Named("id", task.Id))
 	if err != nil {
 		out.Error = errors.New("Задача не найдена")
-		task = model.Task{}
-		return task, out
+		return model.Task{}, out
 
 	}
 	task = model.Task{Id: task.Id, Date: task.Date, Title: task.Title, Comment: task.Comment, Repeat: task.Repeat}
@@ -137,11 +131,11 @@ func (s ParcelStore) Delete(param1 int) error {
 	return err
 }
 
-func (s ParcelStore) Search(param string, limit string) (error, []model.Task) {
+func (s ParcelStore) Search(param string, limit string) ([]model.Task, error) {
 
 	lim, err := strconv.Atoi(limit)
 	if err != nil {
-		return err, []model.Task{}
+		return []model.Task{}, err
 	}
 
 	param1, err := time.Parse("02.01.2006", param)
@@ -152,7 +146,7 @@ func (s ParcelStore) Search(param string, limit string) (error, []model.Task) {
 		rows, err := s.db.Query("SELECT id, date, title, comment, repeat FROM scheduler WHERE title LIKE '%' || :search || '%' OR comment LIKE '%' || :search || '%' ORDER BY date LIMIT :limit ", sql.Named("search", param), sql.Named("search", param), sql.Named("limit", lim))
 		if err != nil {
 
-			return err, []model.Task{}
+			return []model.Task{}, err
 		}
 		defer rows.Close()
 		var task model.Task
@@ -161,7 +155,7 @@ func (s ParcelStore) Search(param string, limit string) (error, []model.Task) {
 
 			err := rows.Scan(&task.Id, &task.Date, &task.Title, &task.Comment, &task.Repeat)
 			if err != nil {
-				return err, []model.Task{}
+				return []model.Task{}, err
 			}
 			task1 = append(task1, task)
 
@@ -171,14 +165,14 @@ func (s ParcelStore) Search(param string, limit string) (error, []model.Task) {
 		}
 
 		if err := rows.Err(); err != nil {
-			return err, []model.Task{}
+			return []model.Task{}, err
 		}
 
-		return nil, task1
+		return task1, nil
 	} else {
 		rows, err := s.db.Query("SELECT id, date, title, comment, repeat FROM scheduler WHERE date = :date ORDER BY date LIMIT :limit ", sql.Named("date", t), sql.Named("limit", lim))
 		if err != nil {
-			return err, []model.Task{}
+			return []model.Task{}, err
 		}
 		defer rows.Close()
 		var task model.Task
@@ -187,7 +181,7 @@ func (s ParcelStore) Search(param string, limit string) (error, []model.Task) {
 
 			err := rows.Scan(&task.Id, &task.Date, &task.Title, &task.Comment, &task.Repeat)
 			if err != nil {
-				return err, []model.Task{}
+				return []model.Task{}, err
 			}
 			task1 = append(task1, task)
 
@@ -197,10 +191,10 @@ func (s ParcelStore) Search(param string, limit string) (error, []model.Task) {
 		}
 
 		if err := rows.Err(); err != nil {
-			return err, []model.Task{}
+			return []model.Task{}, err
 		}
 
-		return nil, task1
+		return task1, nil
 	}
 
 }
